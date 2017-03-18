@@ -38,7 +38,7 @@ vars+=(keydata)
 source /usr/share/zuper/zuper.init
 
 SHURIKEN_KEYSTORE=${SHURIKEN_KEYSTORE:-$HOME/.shuriken/keys}
-SHURIKEN_KEYSTORE=${SHURIKEN_CONFIGS:-$HOME/.shuriken/conf}
+SHURIKEN_CONFIGS=${SHURIKEN_CONFIGS:-$HOME/.shuriken/conf}
 
 SHURIKEN_RINGTONE=${SHURIKEN_RINGTONE:-$HOME/devel/shurikey/ryushoryken.wav}
 
@@ -46,74 +46,67 @@ notice "Shuriken - throw confs around like a ninja"
 
 # }}}
 
-function keycheck() {
-	[[ -r "$1" ]] || {
-		error "File not found: $1"
-		sleep 1
-		return 1
-	}
-	filetype="$(file $1)"
-	[[ $filetype =~ OpenSSH ]] || {
-		error "Not a valid ssh key"
-		error "$filetype"
-		sleep 1
-		return 1
-	}
-	return 0
-}
-	
+# {{{ SSH
 
-function play_audio() {
-	[[ "$SHURIKEN_RINGTONE" = "" ]] && return 0
-	command -v aplay > /dev/null && {
-		aplay "$1" 2> /dev/null
-		return 0
-	}
-	command -v play > /dev/null && {
-		aplay "$1" 2> /dev/null 
-		return 0
-	}
-}
+function import_ssh() {
+	fn import_ssh $*
+	keyfile=$1
+	req=(keyfile)
+	freq=($keyfile)
+	ckreq || return $1
 
-# {{{ MAIN
-[[ "$1" = "" ]] && {
-	act "usage: $0 [file | - ]"
-	return 0
-}
+	# TODO: detect the username from last string if @ is present
 
-[[ "$1" = "-" ]] && {
-	act "importing key from stdin"
-	act "key storage: $SHURIKEN_KEYSTORE"
-	mkdir -p $SHURIKEN_KEYSTORE
-	ztmp
-	cat >> $ztmpfile
-	keycheck $ztmpfile || return 1
-	warning "what is the username for this key?"
-	username=$(i3-input -P "[shuriken] username for this key? " |
-		awk '/^command/ {print $3}')
-	[[ "$username" = "" ]] && {
-		error "error: empty username"
-		return 1
-	}
-	act "username selected: $username"
-	cp $ztmpfile $SHURIKEN_KEYSTORE/$username.pub
-	notice "key succesfully imported: $username"
-	play_audio $SHURIKEN_RINGTONE
-	return 0
+	for line in ${(f)"$(cat $keyfile)"}; do
+		[[ $line =~ ^ssh- ]] || continue
+
+		warning "what is the username for this key?"
+		if command -v dmenu > /dev/null; then
+			username=$(print | dmenu -b -p "[shuriken] username for this key? ")
+		else
+			read username
+		fi
+		[[ "$username" = "" ]] && {
+			error "error: empty username"
+			return 1
+		}
+		act "username selected: $username"
+		if [[ -r $SHURIKEN_KEYSTORE/$username.pub ]]; then
+			# append and eliminate duplicates
+			cat $ztmpfile >> $SHURIKEN_KEYSTORE/$username.pub
+			cat $SHURIKEN_KEYSTORE/$username.pub | sort | uniq > $ztmpfile
+			cp $ztmpfile $SHURIKEN_KEYSTORE/$username.pub
+		else
+			cp $ztmpfile $SHURIKEN_KEYSTORE/$username.pub
+		fi
+		notice "key succesfully imported: $username"
+		play_audio $SHURIKEN_RINGTONE
+
+	done
 }
 
-for i in ${(f)"$(find ${SHURIKEN_KEYSTORE}/ -type f -name '*.pub')"}; do
-	func "shurikey list keys: $i"
-	keyfile=$(basename $i)
-	keyname=${keyfile[(ws:.:)1]}
-	[[ "$keyname" = "$1" ]] || continue
-	keycheck "$i" || continue
-	key=$(basename $i)
+function export_ssh() {
+	fn export_ssh $*
+	keyfile=$1
+	req=(keyfile)
+	freq=($keyfile)
+	ckreq || return $1
+
+	key=$(basename $keyfile)
 	username=${key[(ws:.:)1]}
-	keydata=$(cat $i)
-done
+	keydata=$(cat $keyfile)
 
-cat <<EOF | copy
+	cat <<EOF | copy
+if ! test "$(id -u)" = "0"; then
+    print "[shuriken] --------------------------------"
+    print "[shuriken] cannot add ssh key for $username"
+    print "[shuriken] you must be root."
+    print "[shuriken] --------------------------------"
+else
+
+if ! test -r  /home/$username; then
+    useradd -m $username
+fi
 mkdir -p /home/$username/.ssh
 if ! test -r /home/$username/.ssh/authorized_keys; then
 	touch /home/$username/.ssh/authorized_keys
@@ -123,10 +116,125 @@ $keydata
 EOFF
 chmod -R go-rwx /home/$username/.ssh
 chown -R $username:$username /home/$username/.ssh
+
+fi
 EOF
 
-notice "Shuriken ready in your sleeve!"
-play_audio $SHURIKEN_RINGTONE
-return 0
+	notice "Ssh key ready in your sleeve!"
+	play_audio $SHURIKEN_RINGTONE
+}
+
+# }}}
+
+# {{{ CONF
+
+function import_conf() {
+	# remove the trailing dot if present and set #+shuriken-target:
+}
+
+function export_conf() {
+	# prepare it to be created as #+shuriken-target:
+}
+
+# }}}
+
+function filecheck() {
+	fn filecheck $*
+	action=$1
+	file=$2
+	req=(action file)
+	freq=($file)
+	ckreq || return 1
+
+	filetype="$(file $file)"
+	act "$filetype"
+	if [[ $filetype =~ OpenSSH ]]; then
+		act "OepnSSH key file detected"
+		act "key storage: $SHURIKEN_KEYSTORE"
+		mkdir -p $SHURIKEN_KEYSTORE
+		filetype=ssh
+    elif [[ $filetype =~ ASCII ]]; then
+		act "ASCII text file detected, probably a configuration"
+		act "conf storage: $SHURIKEN_CONFIGS"
+		mkdir -p $SHURIKEN_CONFIGS
+		filetype=conf
+	else
+		error "Unknown filetype"
+		filetype=unknown
+	fi
+
+	case $action in
+		import)
+
+			case $filetype in
+
+				ssh) import_ssh $file ;;
+
+				conf) import_conf $file ;;
+
+			esac
+			return $?
+			;;
+
+		"export")
+
+			case $filetype in
+
+				ssh) export_ssh $file ;;
+
+				conf) export_conf $file ;;
+
+			esac
+			return $?
+			;;
+	esac
+	return 1
+}
+	
+
+function play_audio() {
+	[[ "$SHURIKEN_RINGTONE" = "" ]] && return 0
+	command -v aplay > /dev/null && {
+		aplay "$1" 2> /dev/null &
+		return 0
+	}
+	command -v play > /dev/null && {
+		aplay "$1" 2> /dev/null &
+		return 0
+	}
+}
+
+# {{{ MAIN
+if   [[ "$1" = "" ]]; then
+	act "usage: $0 [file | - ]"
+	return 0
+
+elif [[ "$1" = "-" ]]; then
+	act "importing file from stdin"
+	ztmp
+	cat >> $ztmpfile
+	filecheck import $ztmpfile
+	return $?
+
+else
+	act "exporting file: $1"
+
+	if   [[ -r $1 ]]; then
+		# full path to any file
+		filecheck export "$1"
+
+	elif [[ -r $SHURIKEN_KEYSTORE/${1}.pub ]]; then
+		# found in keys
+		filecheck export $SHURIKEN_KEYSTORE/${1}.pub
+
+	elif [[ -r $SHURIKEN_CONFIGS/${1} ]]; then
+		# found in configs
+		filecheck export $SHURIKEN_CONFIGS/${1}
+
+	else
+		error "file not found: $1"
+	fi
+	return $?
+fi
 
 # }}}
