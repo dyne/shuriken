@@ -137,9 +137,27 @@ EOF
 # {{{ CONF
 
 function import_conf() {
+	fn import_conf $*
+	conffile="$1"
+	req=(conffile)
+	freq=($conffile)
+	ckreq || return 1
+
+	warning "what is the filename for this configuration?"
+	if command -v dmenu > /dev/null; then
+		filename=$(print | dmenu -b -p "[shuriken] filename for this conf? ")
+	else
+		read username
+	fi
+
+	cp "$conffile" "$SHURIKEN_CONFIGS/$filename" &&
+		notice "Configuration imported: $filename"
+
 	# remove the trailing dot if present and set #+shuriken-target:
 	return 0
 }
+
+# step="$(readlink -f $exepath)"
 
 function export_conf() {
 	# prepare it to be created as #+shuriken-target:
@@ -159,7 +177,7 @@ function filecheck() {
 	filetype="$(file $file)"
 	act "$filetype"
 	if [[ $filetype =~ OpenSSH ]]; then
-		act "OepnSSH key file detected"
+		act "OpenSSH key file detected"
 		act "key storage: $SHURIKEN_KEYSTORE"
 		mkdir -p $SHURIKEN_KEYSTORE
 		filetype=ssh
@@ -217,7 +235,7 @@ function play_audio() {
 # {{{ MAIN
 if   [[ "$1" = "" ]]; then
 	act "usage: $0 [file | - ]"
-	tree "$(dirname $SHURIKEN_CONFIGS)"
+	tree -a "$(dirname $SHURIKEN_CONFIGS)"
 	return 0
 
 elif [[ "$1" = "-" ]]; then
@@ -230,16 +248,16 @@ elif [[ "$1" = "-" ]]; then
 else
 	act "exporting file: $1"
 
-	if   [[ -r $1 ]]; then
-		# full path to any file
+	if   [[ -r "$1" ]]; then
+		func "full path to any file"
 		filecheck export "$1"
 
 	elif [[ -r $SHURIKEN_KEYSTORE/${1}.pub ]]; then
-		# found in keys
+		func "found in keys"
 		filecheck export $SHURIKEN_KEYSTORE/${1}.pub
 
 	elif [[ -r $SHURIKEN_CONFIGS/${1} ]]; then
-		# found in configs
+		func "found in configs"
 		filecheck export $SHURIKEN_CONFIGS/${1}
 
 	else
