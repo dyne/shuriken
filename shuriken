@@ -1,0 +1,132 @@
+#!/usr/bin/env zsh
+#
+# Shuriken
+#
+# A tool to throw confs around like a ninja
+#
+# {{{ License
+#
+# Copyright (C) 2017 Dyne.org Foundation
+#
+# Shuriken is designed, written and maintained by Denis Roio <jaromil@dyne.org>
+#
+# This source code is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This source code is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  Please refer
+# to the GNU Public License for more details.
+#
+# You should have received a copy of the GNU Public License along with
+# this source code; if not, write to: Free Software Foundation, Inc.,
+# 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# }}} - License
+
+
+# {{{ Initialisation
+
+
+source /usr/share/zuper/zuper
+
+vars+=(username)
+vars+=(keydata)
+
+source /usr/share/zuper/zuper.init
+
+SHURIKEN_KEYSTORE=${SHURIKEN_KEYSTORE:-$HOME/.shuriken/keys}
+SHURIKEN_KEYSTORE=${SHURIKEN_CONFIGS:-$HOME/.shuriken/conf}
+
+SHURIKEN_RINGTONE=${SHURIKEN_RINGTONE:-$HOME/devel/shurikey/ryushoryken.wav}
+
+notice "Shuriken - throw confs around like a ninja"
+
+# }}}
+
+function keycheck() {
+	[[ -r "$1" ]] || {
+		error "File not found: $1"
+		sleep 1
+		return 1
+	}
+	filetype="$(file $1)"
+	[[ $filetype =~ OpenSSH ]] || {
+		error "Not a valid ssh key"
+		error "$filetype"
+		sleep 1
+		return 1
+	}
+	return 0
+}
+	
+
+function play_audio() {
+	[[ "$SHURIKEN_RINGTONE" = "" ]] && return 0
+	command -v aplay > /dev/null && {
+		aplay "$1" 2> /dev/null
+		return 0
+	}
+	command -v play > /dev/null && {
+		aplay "$1" 2> /dev/null 
+		return 0
+	}
+}
+
+# {{{ MAIN
+[[ "$1" = "" ]] && {
+	act "usage: $0 [file | - ]"
+	return 0
+}
+
+[[ "$1" = "-" ]] && {
+	act "importing key from stdin"
+	act "key storage: $SHURIKEN_KEYSTORE"
+	mkdir -p $SHURIKEN_KEYSTORE
+	ztmp
+	cat >> $ztmpfile
+	keycheck $ztmpfile || return 1
+	warning "what is the username for this key?"
+	username=$(i3-input -P "[shuriken] username for this key? " |
+		awk '/^command/ {print $3}')
+	[[ "$username" = "" ]] && {
+		error "error: empty username"
+		return 1
+	}
+	act "username selected: $username"
+	cp $ztmpfile $SHURIKEN_KEYSTORE/$username.pub
+	notice "key succesfully imported: $username"
+	play_audio $SHURIKEN_RINGTONE
+	return 0
+}
+
+for i in ${(f)"$(find ${SHURIKEN_KEYSTORE}/ -type f -name '*.pub')"}; do
+	func "shurikey list keys: $i"
+	keyfile=$(basename $i)
+	keyname=${keyfile[(ws:.:)1]}
+	[[ "$keyname" = "$1" ]] || continue
+	keycheck "$i" || continue
+	key=$(basename $i)
+	username=${key[(ws:.:)1]}
+	keydata=$(cat $i)
+done
+
+cat <<EOF | copy
+mkdir -p /home/$username/.ssh
+if ! test -r /home/$username/.ssh/authorized_keys; then
+	touch /home/$username/.ssh/authorized_keys
+fi
+cat <<EOFF >> /home/$username/.ssh/authorized_keys
+$keydata
+EOFF
+chmod -R go-rwx /home/$username/.ssh
+chown -R $username:$username /home/$username/.ssh
+EOF
+
+notice "Shuriken ready in your sleeve!"
+play_audio $SHURIKEN_RINGTONE
+return 0
+
+# }}}

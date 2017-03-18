@@ -1,0 +1,68 @@
+#!/usr/bin/env zsh
+#
+# Shuriken
+#
+# Throw confs around like a ninja
+#
+# {{{ License
+#
+# Copyright (C) 2017 Dyne.org Foundation
+#
+# Shuriken is designed, written and maintained by Denis Roio <jaromil@dyne.org>
+#
+# This source code is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# This source code is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  Please refer
+# to the GNU Public License for more details.
+#
+# You should have received a copy of the GNU Public License along with
+# this source code; if not, write to: Free Software Foundation, Inc.,
+# 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# }}} - License
+
+cmd=${1:-shuriken}
+maxheight=10
+
+
+typeset -aU keys confs
+choices=""
+
+keys=()
+confs=()
+
+for b in ${(f)"$(ls $HOME/.shuriken/keys)"}; do
+	local keyname=${b[(ws:.:)1]}
+	keys+=($keyname)
+done
+for c in ${(f)"$(ls $HOME/.shuriken/conf)"}; do
+	local conffile=$c
+	confs+=($conffile)
+done
+
+for k in $keys; do
+	choices+="key $k"
+done
+
+for c in $confs; do
+	choices+="conf $c"
+done
+
+height=$(print ${choices} | wc -l)
+if [[ $height -gt $maxheight ]]; then 
+	heightfit=$maxheight
+else 
+	heightfit=$height
+fi
+
+sel=$(print ${choices} | dmenu -b -i -l $heightfit)
+
+seltype=${sel[(w)1]}
+selfile=${sel[(w)2]}
+
+$cmd $selfile $seltype
