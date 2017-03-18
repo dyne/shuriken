@@ -21,6 +21,7 @@ install:
 		$(PROG) > $(PREFIX)/bin/$(PROG)
 	@chmod +x      $(PREFIX)/bin/$(PROG)
 	@install -m 0755 $(PROG)-dmenu    $(PREFIX)/bin/$(PROG)-dmenu
+	@install -m 0555 ryushoryken.wav $(PREFIX)/share/ryushoryken.wav
 
 lint:
 	shellcheck -e SC1083,SC2048,SC2086,SC2034 -s zsh -f gcc $(PROG)

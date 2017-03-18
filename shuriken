@@ -29,13 +29,15 @@
 
 # {{{ Initialisation
 
+homedir=$HOME/.shuriken
+basedir=.
 
-source /usr/share/zuper/zuper
+source $basedir/zuper/zuper
 
 vars+=(username)
 vars+=(keydata)
 
-source /usr/share/zuper/zuper.init
+source $basedir/zuper/zuper.init
 
 SHURIKEN_KEYSTORE=${SHURIKEN_KEYSTORE:-$HOME/.shuriken/keys}
 SHURIKEN_CONFIGS=${SHURIKEN_CONFIGS:-$HOME/.shuriken/conf}
@@ -60,9 +62,13 @@ function import_ssh() {
 	for line in ${(f)"$(cat $keyfile)"}; do
 		[[ $line =~ ^ssh- ]] || continue
 
+		len="${(w)#line}"
+		last=${line[(w)$len]}
+		name=${last[(ws:@:)1]}
+
 		warning "what is the username for this key?"
 		if command -v dmenu > /dev/null; then
-			username=$(print | dmenu -b -p "[shuriken] username for this key? ")
+			username=$(print "$name" | dmenu -b -p "[shuriken] username for this key? ")
 		else
 			read username
 		fi
@@ -70,11 +76,13 @@ function import_ssh() {
 			error "error: empty username"
 			return 1
 		}
+		[[ $username =~ @ ]] && username=${username%@*}
+
 		act "username selected: $username"
 		if [[ -r $SHURIKEN_KEYSTORE/$username.pub ]]; then
 			# append and eliminate duplicates
 			cat $ztmpfile >> $SHURIKEN_KEYSTORE/$username.pub
-			cat $SHURIKEN_KEYSTORE/$username.pub | sort | uniq > $ztmpfile
+			sort $SHURIKEN_KEYSTORE/$username.pub | uniq > $ztmpfile
 			cp $ztmpfile $SHURIKEN_KEYSTORE/$username.pub
 		else
 			cp $ztmpfile $SHURIKEN_KEYSTORE/$username.pub
@@ -130,10 +138,12 @@ EOF
 
 function import_conf() {
 	# remove the trailing dot if present and set #+shuriken-target:
+	return 0
 }
 
 function export_conf() {
 	# prepare it to be created as #+shuriken-target:
+	return 0
 }
 
 # }}}
@@ -190,7 +200,7 @@ function filecheck() {
 	esac
 	return 1
 }
-	
+
 
 function play_audio() {
 	[[ "$SHURIKEN_RINGTONE" = "" ]] && return 0
@@ -207,6 +217,7 @@ function play_audio() {
 # {{{ MAIN
 if   [[ "$1" = "" ]]; then
 	act "usage: $0 [file | - ]"
+	tree "$(dirname $SHURIKEN_CONFIGS)"
 	return 0
 
 elif [[ "$1" = "-" ]]; then
