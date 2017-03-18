@@ -36,22 +36,24 @@ choices=""
 keys=()
 confs=()
 
-for b in ${(f)"$(ls $HOME/.shuriken/keys)"}; do
-	local keyname=${b[(ws:.:)1]}
-	keys+=($keyname)
-done
-for c in ${(f)"$(ls $HOME/.shuriken/conf)"}; do
-	local conffile=$c
-	confs+=($conffile)
-done
+keydir=$HOME/.shuriken/keys
+confdir=$HOME/.shuriken/conf
 
-for k in $keys; do
-	choices+="key $k"
-done
+[[ -r $keydir ]] && {
+	for k in ${(f)"$(find $keydir -type f)"}; do
+		kk="$(basename $k)"
+		choices+="key ${kk[(ws:.:)1]}
+"
+	done
+}
 
-for c in $confs; do
-	choices+="conf $c"
-done
+[[ -r $confdir ]] && {
+	for c in ${(f)"$(find $confdir -type f)"}; do
+		choices+="conf $(basename $c)
+"
+	done
+}
+
 
 height=$(print ${choices} | wc -l)
 if [[ $height -gt $maxheight ]]; then 
@@ -62,7 +64,4 @@ fi
 
 sel=$(print ${choices} | dmenu -b -i -l $heightfit)
 
-seltype=${sel[(w)1]}
-selfile=${sel[(w)2]}
-
-$cmd $selfile $seltype
+$cmd ${sel[(w)2]}
