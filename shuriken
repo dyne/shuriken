@@ -160,6 +160,22 @@ function import_conf() {
 # step="$(readlink -f $exepath)"
 
 function export_conf() {
+	fn export_conf $*
+	conffile="$1"
+	req=(conffile)
+	freq=($conffile)
+	ckreq || return 1
+
+	conf=$(basename $conffile)
+	func "export conffile: $conffile"
+	func "export conf: $conf"
+
+# TODO: overwrite check
+	cat <<EOF | copy
+cat <<EOFF > $HOME/$conf
+$(cat $conffile)
+EOFF
+EOF
 	# prepare it to be created as #+shuriken-target:
 	return 0
 }
