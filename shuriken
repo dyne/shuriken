@@ -102,7 +102,6 @@ function export_ssh() {
 
 	key=$(basename $keyfile)
 	username=${key[(ws:.:)1]}
-	keydata=$(cat $keyfile)
 
 	cat <<EOF | copy
 if ! test "$(id -u)" = "0"; then
@@ -120,7 +119,7 @@ if ! test -r /home/$username/.ssh/authorized_keys; then
 	touch /home/$username/.ssh/authorized_keys
 fi
 cat <<EOFF >> /home/$username/.ssh/authorized_keys
-$keydata
+$(cat $keyfile)
 EOFF
 chmod -R go-rwx /home/$username/.ssh
 chown -R $username:$username /home/$username/.ssh
