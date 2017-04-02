@@ -242,14 +242,15 @@ function play_audio() {
 		return 0
 	}
 	command -v play > /dev/null && {
-		aplay "$1" 2> /dev/null &
+		play "$1" 2> /dev/null &
 		return 0
 	}
 }
 
 # {{{ MAIN
 if   [[ "$1" = "" ]]; then
-	act "usage: $0 [file | - ]"
+	act "usage: $0 [file] or - to import from stdin"
+	act "[file] can be the name of anything found in the sleeve:"
 	tree -a "$(dirname $SHURIKEN_CONFIGS)"
 	return 0
 

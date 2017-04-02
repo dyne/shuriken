@@ -8,7 +8,7 @@
 
 # Why another script?
 
-Shuriken is a tool to facilitate the tedious task of copying config files and ssh keys across servers; to do so it follows a very minimalist approach based on the clipboard and script generation, rather than using scp and dealing with file permissions.
+Shuriken is a tool to facilitate the tedious task of copying config files and ssh keys across servers; to do so it follows a very minimalist approach, leveraging the power of script generation directly in the clipboard and ready to paste in a terminal, rather than dealing with file transfers and file permissions.
 
 When a file is imported from stdin, Shuriken detects what it is and imports it into its repository (usually in `~/.shuriken`) where all public keys and configurations are stored.
 
