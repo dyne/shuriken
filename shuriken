@@ -105,10 +105,10 @@ function export_ssh() {
 
 	cat <<EOF | copy
 if ! test "\$(id -u)" = "0"; then
-    print "[shuriken] --------------------------------"
-    print "[shuriken] cannot add ssh key for $username"
-    print "[shuriken] you must be root."
-    print "[shuriken] --------------------------------"
+    echo "[shuriken] --------------------------------"
+    echo "[shuriken] cannot add ssh key for $username"
+    echo "[shuriken] you must be root."
+    echo "[shuriken] --------------------------------"
 else
 
 if ! test -r  /home/$username; then
