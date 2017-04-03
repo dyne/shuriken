@@ -42,7 +42,7 @@ source $basedir/zuper/zuper.init
 SHURIKEN_KEYSTORE=${SHURIKEN_KEYSTORE:-$HOME/.shuriken/keys}
 SHURIKEN_CONFIGS=${SHURIKEN_CONFIGS:-$HOME/.shuriken/conf}
 
-SHURIKEN_RINGTONE=${SHURIKEN_RINGTONE:-$BASEDIR/ryushoryken.wav}
+SHURIKEN_RINGTONE=${SHURIKEN_RINGTONE:-$basedir/ryushoryken.wav}
 
 notice "Shuriken - throw confs around like a ninja"
 
