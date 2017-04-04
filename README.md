@@ -14,6 +14,8 @@ When a file is imported from stdin, Shuriken detects what it is and imports it i
 
 When an ssh key is exported (from the shuriken repository or an absolute path to a file) Shuriken will prepare a script ready to be pasted in from the clipboard, containing commands to create the user if doesn't exists, copy the ssh key file in place and set the correct permissions.
 
+<img src="shuriken_origami.png" alt="shuriken origami" title="shuriken origami">
+
 # License
 
 Copyright (C) 2017 Dyne.org Foundation
