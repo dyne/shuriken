@@ -171,7 +171,7 @@ function export_conf() {
 
 # TODO: overwrite check
 	cat <<EOF | copy
-cat <<EOFF > $HOME/$conf
+cat <<EOFF > $conf
 $(cat $conffile)
 EOFF
 EOF
@@ -264,9 +264,9 @@ elif [[ "$1" = "-" ]]; then
 else
 	act "exporting file: $1"
 
-	if   [[ -r "$1" ]]; then
+	if   [[ -r "${homedir}"/"$1" ]]; then
 		func "full path to any file"
-		filecheck export "$1"
+		filecheck export "${homedir}"/"$1"
 
 	elif [[ -r $SHURIKEN_KEYSTORE/${1}.pub ]]; then
 		func "found in keys"
