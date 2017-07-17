@@ -116,7 +116,7 @@ if ! test -r  /home/$username; then
 fi
 mkdir -p /home/$username/.ssh
 if ! test -r /home/$username/.ssh/authorized_keys; then
-	touch /home/$username/.ssh/authorized_keys
+    touch /home/$username/.ssh/authorized_keys
 fi
 cat <<EOFF >> /home/$username/.ssh/authorized_keys
 $(cat $keyfile)
