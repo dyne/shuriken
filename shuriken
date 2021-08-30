@@ -103,7 +103,7 @@ function export_ssh() {
 	key=$(basename $keyfile)
 	username=${key[(ws:.:)1]}
 
-	cat <<EOF | copy
+	cat <<EOF | xclip -i -selection clipboard 
 if ! test "\$(id -u)" = "0"; then
     echo "[shuriken] --------------------------------"
     echo "[shuriken] cannot add ssh key for $username"
